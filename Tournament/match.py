@@ -30,7 +30,7 @@ from .utils import *
 
 class match:
     # The class constructor
-    def __init__( self, a_players: List[str] ):
+    def __init__( self, a_players: List[str]):
         self.saveLocation = ""
 
         self.matchNumber = -1
@@ -41,7 +41,7 @@ class match:
         
         self.misfortunes = { }
 
-        self.role   = ""
+        self.role   = None
         self.roleID = ""
         self.VC     = ""
         self.VC_ID  = ""
@@ -51,8 +51,13 @@ class match:
 
         self.timeExtension = 0
         self.timer     = ""
-        self.startTime = getTime( )
+        self.startTime = getTime( )        
         self.endTime   = ""
+        
+        # Only changed if it is a trice match
+        self.triceMatch = False
+        self.gameID = -1
+        self.replayURL = ""
         
         self.stopTimer = False
     
@@ -185,25 +190,28 @@ class match:
         if a_filename == "":
             a_filename = self.saveLocation
         digest  = "<?xml version='1.0'?>\n"
-        digest += f'<match roleID="{self.role.id if type(self.role) == discord.Role else str()}" VC_ID="{self.VC.id if type(self.VC) == discord.VoiceChannel else str()}">\n'
-        digest += f'\t<number>{self.matchNumber}</number>\n'
-        digest += f'\t<timeExtension>{self.timeExtension}</timeExtension>\n'
-        digest += f'\t<stopTimer>{self.stopTimer}</stopTimer>\n'
-        digest += f'\t<startTime>{self.startTime}</startTime>\n'
-        digest += f'\t<endTime>{self.endTime}</endTime>\n'
-        digest += f'\t<status>{self.status}</status>\n'
-        digest += f'\t<winner name="{self.winner}"/>\n'
+        digest += f'<match roleID="{toSafeXML(self.role.id if type(self.role) == discord.Role else str())}" VC_ID="{toSafeXML(self.VC.id if type(self.VC) == discord.VoiceChannel else str())}">\n'
+        digest += f'\t<number>{toSafeXML(self.matchNumber)}</number>\n'
+        digest += f'\t<timeExtension>{toSafeXML(self.timeExtension)}</timeExtension>\n'
+        digest += f'\t<stopTimer>{toSafeXML(self.stopTimer)}</stopTimer>\n'
+        digest += f'\t<startTime>{toSafeXML(self.startTime)}</startTime>\n'
+        digest += f'\t<endTime>{toSafeXML(self.endTime)}</endTime>\n'
+        digest += f'\t<status>{toSafeXML(self.status)}</status>\n'
+        digest += f'\t<triceMatch>{toSafeXML(self.triceMatch)}</triceMatch>\n'
+        digest += f'\t<gameID>{toSafeXML(self.gameID)}</gameID>\n'
+        digest += f'\t<replayURL>{toSafeXML(self.replayURL)}</replayURL>\n'
+        digest += f'\t<winner name="{toSafeXML(self.winner)}"/>\n'
         digest += '\t<activePlayers>\n'
         for player in self.activePlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
         digest += '\t</activePlayers>\n'
         digest += '\t<droppedPlayers>\n'
         for player in self.droppedPlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
         digest += '\t</droppedPlayers>\n'
         digest += '\t<confirmedPlayers>\n'
         for player in self.confirmedPlayers:
-            digest += f'\t\t<player name="{player}"/>\n'
+            digest += f'\t\t<player name="{toSafeXML(player)}"/>\n'
         digest += '\t</confirmedPlayers>\n'
         digest += '</match>'
         with open( a_filename, "w" ) as savefile:
@@ -214,22 +222,25 @@ class match:
         self.saveLocation = a_filename
         xmlTree = ET.parse( a_filename )
         matchRoot = xmlTree.getroot()
-        self.roleID = matchRoot.attrib["roleID"]
+        self.roleID = fromXML(matchRoot.attrib["roleID"])
         if self.roleID != "":
-            self.roleID = int( self.roleID )
+            self.roleID = int( fromXML( self.roleID ) )
         self.VC_ID = matchRoot.attrib["VC_ID"]
         if self.VC_ID != "":
-            self.VC_ID = int( self.VC_ID )
-        self.matchNumber = int( matchRoot.find( "number" ).text )
-        self.stopTimer = str_to_bool( matchRoot.find("stopTimer").text )
-        self.startTime = matchRoot.find( "startTime" ).text
-        self.endTime = matchRoot.find( "endTime" ).text
-        self.status = matchRoot.find( "status" ).text
-        self.winner = matchRoot.find( "winner" ).attrib["name"]
+            self.VC_ID = int( fromXML( self.VC_ID ) )
+        self.matchNumber = int( fromXML( matchRoot.find( "number" ).text ) )
+        self.stopTimer = str_to_bool( fromXML( matchRoot.find("stopTimer").text ) )
+        self.startTime = fromXML( matchRoot.find( "startTime") .text )
+        self.endTime = fromXML( matchRoot.find( "endTime" ).text )
+        self.status = fromXML( matchRoot.find(  "status" ).text )                
+        self.triceMatch = fromXML( matchRoot.find(  "triceMatch" ).text )
+        self.gameID = fromXML( matchRoot.find(  "gameID" ).text )
+        self.replayURL = fromXML( matchRoot.find(  "replayURL" ).text )
+        self.winner = fromXML( matchRoot.find( "winner" ).attrib["name"] )
         for player in matchRoot.find("activePlayers"):
-            self.activePlayers.append( player.attrib["name"] )
+            self.activePlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("droppedPlayers"):
-            self.droppedPlayers.append( player.attrib["name"] )
+            self.droppedPlayers.append( fromXML( player.attrib["name"] ) )
         for player in matchRoot.find("confirmedPlayers"):
-            self.confirmedPlayers.append( player.attrib["name"] )
+            self.confirmedPlayers.append( fromXML( player.attrib["name"] ) )
 
